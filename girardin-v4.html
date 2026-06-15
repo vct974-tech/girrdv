@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a2744">
+<title>GirRDV</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --blue:#1a2744; --gold:#c9a84c; --bg:#f4f6fb; --white:#fff; --muted:#6b7a9a; --border:#dde3f0; --red:#e53e3e; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--blue); max-width:480px; margin:0 auto; min-height:100vh; }
+
+  header { background:var(--blue); color:var(--white); padding:48px 18px 18px; display:flex; justify-content:space-between; align-items:flex-end; }
+  header h1 { font-size:22px; font-weight:700; }
+  header h1 span { color:var(--gold); }
+  header p { font-size:12px; opacity:.6; margin-top:2px; }
+  #cfg-btn { background:rgba(255,255,255,.12); border:none; border-radius:10px; padding:8px 12px; color:var(--white); font-size:15px; cursor:pointer; }
+
+  .screen { display:none; padding:16px 16px 48px; }
+  .screen.active { display:block; }
+
+  .card { background:var(--white); border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:0 2px 12px rgba(26,39,68,.08); }
+  .lbl { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); margin-bottom:8px; }
+
+  input, select { width:100%; border:1.5px solid var(--border); border-radius:10px; padding:12px 14px; font-size:15px; color:var(--blue); background:var(--white); outline:none; font-family:inherit; margin-bottom:0; }
+  input:focus, select:focus { border-color:var(--blue); }
+
+  textarea { width:100%; min-height:180px; border:1.5px solid var(--border); border-radius:10px; padding:12px 14px; font-size:14px; line-height:1.75; color:var(--blue); font-family:inherit; resize:vertical; outline:none; background:var(--bg); }
+  textarea:focus { border-color:var(--blue); background:var(--white); }
+
+  .mic-wrap { text-align:center; padding:20px 0 10px; }
+  #micBtn { width:84px; height:84px; border-radius:50%; border:none; background:var(--red); color:var(--white); font-size:32px; cursor:pointer; box-shadow:0 4px 20px rgba(229,62,62,.35); display:inline-flex; align-items:center; justify-content:center; transition:transform .1s; }
+  #micBtn:active { transform:scale(.92); }
+  #micBtn.on { animation:pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{box-shadow:0 4px 20px rgba(229,62,62,.35)} 50%{box-shadow:0 4px 38px rgba(229,62,62,.72)} }
+  #mic-status { text-align:center; font-size:13px; color:var(--muted); margin-top:8px; min-height:18px; }
+
+  .btn { display:block; width:100%; padding:14px; border-radius:12px; font-size:15px; font-weight:600; border:none; cursor:pointer; text-align:center; transition:opacity .15s; }
+  .btn:active { opacity:.82; }
+  .btn-blue { background:var(--blue); color:var(--white); margin-bottom:10px; }
+  .btn-gold { background:var(--gold); color:var(--blue); margin-bottom:10px; }
+  .btn-out  { background:transparent; border:1.5px solid var(--border); color:var(--blue); }
+  .row { display:flex; gap:10px; }
+  .row .btn { flex:1; }
+
+  /* history */
+  .rdv-item { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+  .rdv-item:last-child { border-bottom:none; }
+  .av { width:40px; height:40px; border-radius:50%; background:var(--blue); color:var(--white); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px; flex-shrink:0; }
+  .ri { flex:1; }
+  .rn { font-weight:600; font-size:15px; }
+  .rm { font-size:12px; color:var(--muted); margin-top:2px; }
+  .empty { text-align:center; padding:36px 0; color:var(--muted); font-size:14px; }
+  .empty .ico { font-size:40px; margin-bottom:10px; }
+
+  .fab { position:fixed; bottom:24px; right:16px; width:56px; height:56px; border-radius:50%; border:none; background:var(--gold); color:var(--blue); font-size:28px; cursor:pointer; box-shadow:0 4px 16px rgba(201,168,76,.5); display:flex; align-items:center; justify-content:center; z-index:50; }
+
+  /* modal */
+  .ov { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; display:none; align-items:flex-end; }
+  .ov.open { display:flex; }
+  .mb { background:var(--white); border-radius:20px 20px 0 0; padding:22px 16px 36px; width:100%; max-width:480px; margin:0 auto; }
+  .mb h3 { font-size:17px; font-weight:700; margin-bottom:14px; }
+  .cr { background:var(--bg); border-radius:10px; padding:12px; font-size:13px; line-height:1.75; max-height:280px; overflow-y:auto; white-space:pre-wrap; border:1px solid var(--border); margin-bottom:14px; word-break:break-word; }
+
+  .hint { font-size:12px; color:var(--muted); margin-top:6px; }
+  .alert { background:#fffbeb; border:1px solid #fcd34d; border-radius:10px; padding:12px 14px; font-size:13px; color:#92400e; margin-bottom:14px; }
+  .gap { margin-top:10px; }
+  .gap2 { margin-top:18px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div><h1>Gir<span>RDV</span></h1><p>Dictée vocale · Gratuit · Sans inscription</p></div>
+  <button id="cfg-btn" onclick="show('cfg')">⚙️</button>
+</header>
+
+<!-- HOME -->
+<div id="s-home" class="screen active">
+  <div class="card">
+    <div class="lbl">Entretiens récents</div>
+    <div id="rdv-list"></div>
+  </div>
+  <button class="fab" onclick="show('new')">+</button>
+</div>
+
+<!-- NEW RDV -->
+<div id="s-new" class="screen">
+  <div class="card">
+    <div class="lbl">Prospect</div>
+    <input type="text" id="n-name" placeholder="Nom du prospect" style="margin-bottom:12px">
+    <select id="n-type">
+      <option>Découverte</option>
+      <option>Présentation Girardin</option>
+      <option>Suivi / Relance</option>
+      <option>Closing</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="lbl">Dictée vocale</div>
+    <div class="mic-wrap">
+      <button id="micBtn" onclick="toggleMic()">🎙</button>
+    </div>
+    <div id="mic-status">Appuyez sur le micro pour dicter</div>
+    <div id="mic-fallback" style="display:none;margin-top:14px">
+      <div class="alert" style="margin-bottom:10px">⚠️ Dictée vocale indisponible sur ce navigateur. Utilisez le micro du clavier ci-dessous.</div>
+      <div class="lbl">Dicter via le clavier</div>
+      <input type="text" id="voice-input" placeholder="🎙 Appuyez ici puis le micro de votre clavier" inputmode="text" style="margin-bottom:8px" oninput="appendVoiceInput(this.value)" onfocus="this.value=''">
+      <p class="hint">Sur iPhone : appuyez sur 🎙 en bas du clavier. Sur Android : appuyez sur 🎤 sur le clavier.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">Notes de l'entretien</div>
+    <textarea id="t-notes" placeholder="Vos notes apparaissent ici automatiquement. Vous pouvez aussi taper directement."></textarea>
+  </div>
+
+  <div class="row">
+    <button class="btn btn-out" onclick="cancelNew()">Annuler</button>
+    <button class="btn btn-gold" onclick="generate()">📋 Générer le CR</button>
+  </div>
+</div>
+
+<!-- CONFIG -->
+<div id="s-cfg" class="screen">
+  <div class="card">
+    <div class="lbl">Votre prénom</div>
+    <input type="text" id="c-name" placeholder="Ex : Vincent" style="margin-bottom:12px">
+    <div class="lbl">Votre email</div>
+    <input type="email" id="c-email" placeholder="vous@email.com" style="margin-bottom:12px">
+    <div class="lbl">Email client par défaut (optionnel)</div>
+    <input type="email" id="c-client" placeholder="prospect@email.com">
+  </div>
+  <div class="alert">🎙 Fonctionne avec Chrome (Android) et Safari (iPhone). Aucun compte requis.</div>
+  <button class="btn btn-blue" onclick="saveCfg()">Enregistrer</button>
+  <button class="btn btn-out gap" onclick="show('home')">Retour</button>
+</div>
+
+<!-- MODAL CR -->
+<div class="ov" id="ov" onclick="closeOv(event)">
+  <div class="mb">
+    <h3 id="cr-title">Compte-rendu</h3>
+    <div class="cr" id="cr-body"></div>
+
+    <!-- Partager (meilleure méthode sur mobile) -->
+    <button class="btn btn-gold" id="btn-share" onclick="doShare()">🔗 Partager (Email, WhatsApp…)</button>
+
+    <!-- Copier (fallback universel) -->
+    <button class="btn btn-blue" onclick="doCopy()">📋 Copier le texte</button>
+
+    <!-- mailto direct -->
+    <button class="btn btn-out" onclick="doMailto()">✉️ Ouvrir dans l'app mail</button>
+
+    <button class="btn btn-out gap2" onclick="closeOv()">Fermer</button>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────
+let cfg = {
+  name:   localStorage.getItem('g_name')   || '',
+  email:  localStorage.getItem('g_email')  || '',
+  client: localStorage.getItem('g_client') || '',
+};
+let rdvs = JSON.parse(localStorage.getItem('g_rdvs') || '[]');
+let curCR = '';
+let curRdv = null;
+
+// ── NAV ─────────────────────────────────
+function show(s) {
+  document.querySelectorAll('.screen').forEach(x => x.classList.remove('active'));
+  document.getElementById('s-' + s).classList.add('active');
+  if (s === 'home') renderHome();
+  if (s === 'cfg')  loadCfg();
+  window.scrollTo(0, 0);
+}
+
+// ── MIC ─────────────────────────────────
+let recog = null;
+let isOn  = false;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+function toggleMic() { isOn ? stopMic() : startMic(); }
+
+function startMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    // Pas de support natif : afficher le fallback clavier
+    document.getElementById('mic-fallback').style.display = 'block';
+    document.getElementById('micBtn').style.display = 'none';
+    document.getElementById('mic-status').style.display = 'none';
+    return;
+  }
+
+  recog = new SR();
+  recog.lang = 'fr-FR';
+  recog.interimResults = true;
+  // iOS ne supporte pas continuous:true → on relance manuellement dans onend
+  recog.continuous = !isIOS;
+
+  const ta = document.getElementById('t-notes');
+  let saved = ta.value;
+
+  recog.onresult = e => {
+    let fin = '', tmp = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) fin += e.results[i][0].transcript + ' ';
+      else tmp += e.results[i][0].transcript;
+    }
+    if (fin) { saved = (saved + ' ' + fin).trim(); ta.value = saved; }
+    setStatus(tmp ? '🎙 ' + tmp : '🎙 En écoute…');
+  };
+
+  recog.onerror = e => {
+    // 'no-speech' est normal → on ignore et on relance sur iOS
+    if (e.error === 'no-speech') { if (isIOS && isOn) { try { recog.start(); } catch {} } return; }
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      setStatus('❌ Permission micro refusée. Autorisez le micro dans les réglages.');
+      stopMic();
+      return;
+    }
+    setStatus('Erreur : ' + e.error);
+    stopMic();
+  };
+
+  // Sur iOS : relancer automatiquement à chaque fin de session
+  recog.onend = () => {
+    if (isOn) {
+      try { recog.start(); } catch(err) {
+        // Si on ne peut plus relancer, on s'arrête proprement
+        stopMic();
+      }
+    }
+  };
+
+  try {
+    recog.start();
+  } catch(err) {
+    setStatus('❌ Impossible de démarrer : ' + err.message);
+    return;
+  }
+
+  isOn = true;
+  document.getElementById('micBtn').textContent = '⏹';
+  document.getElementById('micBtn').classList.add('on');
+  setStatus('🎙 En écoute…');
+}
+
+function stopMic() {
+  isOn = false; // mettre à false AVANT stop() pour éviter le relancement dans onend
+  if (recog) { try { recog.stop(); } catch {} recog = null; }
+  document.getElementById('micBtn').textContent = '🎙';
+  document.getElementById('micBtn').classList.remove('on');
+  setStatus('Dictée arrêtée · Appuyez pour continuer');
+}
+
+function setStatus(t) { document.getElementById('mic-status').textContent = t; }
+
+// Fallback clavier : ajoute le texte dicté aux notes
+function appendVoiceInput(val) {
+  if (!val.trim()) return;
+  const ta = document.getElementById('t-notes');
+  ta.value = (ta.value + ' ' + val).trim();
+}
+
+// ── GENERATE ─────────────────────────────
+function generate() {
+  stopMic();
+  const name = document.getElementById('n-name').value.trim();
+  if (!name) { alert('Veuillez saisir le nom du prospect.'); return; }
+
+  const notes = document.getElementById('t-notes').value.trim();
+  const d = new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+
+  curRdv = {
+    id: Date.now().toString(),
+    name, type: document.getElementById('n-type').value,
+    date: new Date().toISOString(), notes,
+  };
+
+  curCR = `COMPTE-RENDU – GIRARDIN INDUSTRIEL
+${'═'.repeat(38)}
+Date      : ${d}
+Prospect  : ${name}
+Type      : ${curRdv.type}
+Conseiller: ${cfg.name || 'Non renseigné'}
+${'═'.repeat(38)}
+
+${notes || '(Aucune note)'}
+
+${'─'.repeat(38)}
+GirRDV · ${new Date().toLocaleString('fr-FR')}`;
+
+  curRdv.cr = curCR;
+  rdvs.unshift(curRdv);
+  localStorage.setItem('g_rdvs', JSON.stringify(rdvs.slice(0, 50)));
+
+  document.getElementById('cr-title').textContent = 'CR – ' + name;
+  document.getElementById('cr-body').textContent = curCR;
+
+  // Afficher/masquer le bouton Partager selon dispo
+  document.getElementById('btn-share').style.display = navigator.share ? '' : 'none';
+
+  document.getElementById('ov').classList.add('open');
+}
+
+// ── PARTAGER (méthode la plus fiable sur mobile) ──
+async function doShare() {
+  if (!navigator.share) { alert('Non disponible sur ce navigateur.'); return; }
+  try {
+    await navigator.share({
+      title: document.getElementById('cr-title').textContent,
+      text: curCR,
+    });
+  } catch (e) {
+    if (e.name !== 'AbortError') alert('Erreur : ' + e.message);
+  }
+}
+
+// ── COPIER ───────────────────────────────
+async function doCopy() {
+  try {
+    await navigator.clipboard.writeText(curCR);
+    alert('✅ Texte copié ! Collez-le dans un email ou WhatsApp.');
+  } catch {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = curCR;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('✅ Texte copié !');
+  }
+}
+
+// ── MAILTO (fallback) ────────────────────
+function doMailto() {
+  const to  = cfg.email || '';
+  const sub = encodeURIComponent('CR Girardin – ' + (curRdv?.name || '') + ' – ' + new Date().toLocaleDateString('fr-FR'));
+  // Limiter le body pour éviter le blocage (certains clients bloquent > 2000 cars)
+  const bodyText = curCR.length > 1800 ? curCR.slice(0, 1800) + '\n\n[Texte tronqué – utilisez "Copier" pour le texte complet]' : curCR;
+  const body = encodeURIComponent(bodyText);
+  window.location.href = `mailto:${to}?subject=${sub}&body=${body}`;
+}
+
+// ── MODAL ────────────────────────────────
+function closeOv(e) {
+  if (!e || e.target === document.getElementById('ov'))
+    document.getElementById('ov').classList.remove('open');
+}
+
+function cancelNew() {
+  stopMic();
+  document.getElementById('n-name').value = '';
+  document.getElementById('t-notes').value = '';
+  setStatus('Appuyez sur le micro pour dicter');
+  show('home');
+}
+
+// ── HISTORIQUE ───────────────────────────
+function renderHome() {
+  const el = document.getElementById('rdv-list');
+  if (!rdvs.length) {
+    el.innerHTML = '<div class="empty"><div class="ico">🗂</div>Aucun entretien.<br>Appuyez sur <strong>+</strong> pour commencer.</div>';
+    return;
+  }
+  el.innerHTML = rdvs.slice(0, 20).map(r => `
+    <div class="rdv-item" onclick="openRdv('${r.id}')">
+      <div class="av">${(r.name[0]||'?').toUpperCase()}</div>
+      <div class="ri">
+        <div class="rn">${r.name}</div>
+        <div class="rm">${r.type} · ${new Date(r.date).toLocaleDateString('fr-FR')}</div>
+      </div>
+      <span style="color:var(--muted);font-size:18px">›</span>
+    </div>`).join('');
+}
+
+function openRdv(id) {
+  curRdv = rdvs.find(r => r.id === id);
+  if (!curRdv) return;
+  curCR = curRdv.cr || '';
+  document.getElementById('cr-title').textContent = 'CR – ' + curRdv.name;
+  document.getElementById('cr-body').textContent = curCR;
+  document.getElementById('btn-share').style.display = navigator.share ? '' : 'none';
+  document.getElementById('ov').classList.add('open');
+}
+
+// ── CONFIG ───────────────────────────────
+function loadCfg() {
+  document.getElementById('c-name').value   = cfg.name;
+  document.getElementById('c-email').value  = cfg.email;
+  document.getElementById('c-client').value = cfg.client;
+}
+function saveCfg() {
+  cfg.name   = document.getElementById('c-name').value.trim();
+  cfg.email  = document.getElementById('c-email').value.trim();
+  cfg.client = document.getElementById('c-client').value.trim();
+  localStorage.setItem('g_name',   cfg.name);
+  localStorage.setItem('g_email',  cfg.email);
+  localStorage.setItem('g_client', cfg.client);
+  alert('Enregistré ✓');
+  show('home');
+}
+
+renderHome();
+</script>
+</body>
+</html>
